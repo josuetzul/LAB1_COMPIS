@@ -1,12 +1,12 @@
 import re
 
-# Definición de tokens
+# Definición de tokens. 
 TOKEN_REGEX = {
     'TYPE': re.compile(r'\b(bin|oct|hex)\b'),
     'ID': re.compile(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'),
     'EQUAL': re.compile(r'='),
-    'NUM': re.compile(r'0b[01]+|0o[0-7]+|0x[0-9A-Fa-f]+|\d+'),
-    'PLUS': re.compile(r'\+'),
+    'NUM': re.compile(r'0b[01]+|0o[0-7]+|0x[0-9A-Fa-f]*|[0-9A-Fa-f]+|\d+'),
+    'PLUS': re.compile(r'\+'), # A partir de acá fue generado con CHAT GPT las siguientes expresiones regulares.
     'MINUS': re.compile(r'-'),
     'TIMES': re.compile(r'\*'),
     'DIVIDE': re.compile(r'/'),
@@ -15,7 +15,7 @@ TOKEN_REGEX = {
     'SEMICOLON': re.compile(r';')
 }
 
-# Lexer (Tokenizador)
+# Lexer (Tokenizador). Realizado en base a ejemplo en la clase y chat para adaptar a python. 
 def lexer(input_text):
     tokens = []
     while input_text:
@@ -30,11 +30,21 @@ def lexer(input_text):
                 break
         if not matched:
             raise SyntaxError(f"Error léxico en: {input_text}")
-    tokens.append(('EOF', ''))  # Agregar token EOF
+    tokens.append(('EOF', '')) 
     print("Tokens generados:", tokens)
     return tokens
 
-# Parser LL(1) para expresiones aritméticas
+# Validación de valores según el tipo de base. Generado con CHAT GPT
+def is_valid_value(type_, value):
+    if type_ == 'bin' and not re.fullmatch(r'[01]+', value):
+        return False
+    if type_ == 'oct' and not re.fullmatch(r'[0-7]+', value):
+        return False
+    if type_ == 'hex' and not re.fullmatch(r'[0-9A-Fa-f]*|[0-9A-Fa-f]+', value):
+        return False
+    return True
+
+# Parser LL(1) para expresiones aritméticas. Generada con CHAT GPT en base a nuestra tabla realizada en el EXCEL
 PARSE_TABLE = {
     'S': {'ID': ['E', 'EOF'], 'NUM': ['E', 'EOF'], 'LPAREN': ['E', 'EOF']},
     'E': {'ID': ['T', "E'"], 'NUM': ['T', "E'"], 'LPAREN': ['T', "E'"]},
@@ -49,18 +59,15 @@ PARSE_TABLE = {
 def parser(tokens):
     stack = ['S']
     index = 0
-    print("Iniciando parser...")
+
     while stack:
         top = stack.pop()
         token_type, token_value = tokens[index]
-        print(f"Pila actual: {stack}")
-        print(f"Top de la pila: {top}")
-        prissnt(f"Token actual: ({token_type}, {token_value})")
 
         if top in PARSE_TABLE:
             if token_type in PARSE_TABLE[top]:
                 production = PARSE_TABLE[top][token_type]
-                print(f"Aplicando producción: {production}")
+
                 if production != ['ε']:
                     stack.extend(reversed(production))
             else:
